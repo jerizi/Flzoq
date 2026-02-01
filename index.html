@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>숲 리캡 대시보드</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  body { background: #000; color: #fff; font-family: Arial, sans-serif; margin: 0; padding: 0; }
+  header { padding: 20px; text-align: center; font-size: 24px; color: #1abc9c; }
+  nav { display: flex; justify-content: center; margin-bottom: 20px; }
+  nav button { background: #111; color: #1abc9c; border: none; padding: 10px 20px; margin: 0 5px; cursor: pointer; }
+  nav button.active { background: #1abc9c; color: #000; }
+  .tab { display: none; padding: 0 20px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th, td { border: 1px solid #444; padding: 8px; text-align: left; }
+  th { background: #111; color: #1abc9c; }
+  tr:nth-child(even) { background: #222; }
+  .chart-container { width: 100%; max-width: 800px; margin: 20px auto; }
+</style>
+</head>
+<body>
+
+<header>숲 리캡 대시보드</header>
+<nav>
+  <button class="tab-btn active" data-tab="overall">전체 순위</button>
+  <button class="tab-btn" data-tab="monthly">월별 순위</button>
+  <button class="tab-btn" data-tab="daily">일별 순위</button>
+  <button class="tab-btn" data-tab="monthlyCompare">월별 비교</button>
+</nav>
+
+<div id="overall" class="tab" style="display:block;">
+  <h2>전체 스트리머 순위</h2>
+  <table>
+    <thead>
+      <tr><th>순위</th><th>스트리머</th><th>그룹</th><th>누적 시청시간(분)</th><th>최고 시청일</th></tr>
+    </thead>
+    <tbody id="overallBody"></tbody>
+  </table>
+</div>
+
+<div id="monthly" class="tab">
+  <h2>월별 순위 (샘플: 2025-01)</h2>
+  <div class="chart-container">
+    <canvas id="monthlyChart"></canvas>
+  </div>
+</div>
+
+<div id="daily" class="tab">
+  <h2>일별 순위</h2>
+  <table>
+    <thead>
+      <tr><th>날짜</th><th>총 시청시간(분)</th></tr>
+    </thead>
+    <tbody id="dailyBody"></tbody>
+  </table>
+</div>
+
+<div id="monthlyCompare" class="tab">
+  <h2>월별 비교 (총 시청시간)</h2>
+  <div class="chart-container">
+    <canvas id="monthlyCompareChart"></canvas>
+  </div>
+</div>
+
+<script>
+const sampleData = [
+  {date:"2025-01-01", month:"2025-01", year:"2025", streamer:"징버거", group:"이세계아이돌", watch_time:120},
+  {date:"2025-01-01", month:"2025-01", year:"2025", streamer:"고세구", group:"이세계아이돌", watch_time:100},
+  {date:"2025-01-02", month:"2025-01", year:"2025", streamer:"징버거", group:"이세계아이돌", watch_time:90},
+  {date:"2025-02-01", month:"2025-02", year:"2025", streamer:"비챤", group:"이세계아이돌", watch_time:150},
+];
+
+// --- 전체 순위 ---
+const overallBody = document.getElementById("overallBody");
+const totalByStreamer = {};
+sampleData.forEach(d => {
+  if(!totalByStreamer[d.streamer]) totalByStreamer[d.streamer] = {watch_time:0, group:d.group, bestDate:d.date};
+  totalByStreamer[d.streamer].watch_time += d.watch_time;
+  if(d.watch_time > sampleData.find(x=>x.streamer===d.streamer && x.watch_time===totalByStreamer[d.streamer].watch_time)?.watch_time){
+    totalByStreamer[d.streamer].bestDate = d.date;
+  }
+});
+const sortedStreamers = Object.entries(totalByStreamer).sort((a,b)=>b[1].watch_time - a[1].watch_time);
+sortedStreamers.forEach((s,i)=>{
+  const row = document.createElement("tr");
+  row.innerHTML = `<td>${i+1}</td><td>${s[0]}</td><td>${s[1].group}</td><td>${s[1].watch_time}</td><td>${s[1].bestDate}</td>`;
+  overallBody.appendChild(row);
+});
+
+// --- 월별 순위 (차트) ---
+const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+const monthlyLabels = ["징버거","고세구","비챤"];
+const monthlyData = [210,100,150]; // 샘플 누적
+new Chart(monthlyCtx, {
+  type:'bar',
+  data:{labels:monthlyLabels,datasets:[{label:'2025-01 시청시간',data:monthlyData,backgroundColor:'#1abc9c'}]},
+  options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}
+});
+
+// --- 일별 순위 ---
+const dailyBody = document.getElementById("dailyBody");
+const totalByDay = {};
+sampleData.forEach(d=>{ totalByDay[d.date] = (totalByDay[d.date]||0)+d.watch_time });
+Object.entries(totalByDay).sort((a,b)=>b[1]-a[1]).forEach(([date,time])=>{
+  const row = document.createElement("tr");
+  row.innerHTML = `<td>${date}</td><td>${time}</td>`;
+  dailyBody.appendChild(row);
+});
+
+// --- 월별 비교 차트 ---
+const monthlyCompareCtx = document.getElementById('monthlyCompareChart').getContext('2d');
+const totalByMonth = {};
+sampleData.forEach(d=>{ totalByMonth[d.month]=(totalByMonth[d.month]||0)+d.watch_time });
+new Chart(monthlyCompareCtx,{
+  type:'line',
+  data:{labels:Object.keys(totalByMonth),datasets:[{label:'월별 총 시청시간',data:Object.values(totalByMonth),borderColor:'#3498db',backgroundColor:'#3498db',fill:false}]},
+  options:{plugins:{legend:{display:true}},scales:{y:{beginAtZero:true}}}
+});
+
+// --- 탭 전환 ---
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.tab').forEach(t=>t.style.display='none');
+    document.getElementById(btn.dataset.tab).style.display='block';
+  });
+});
+</script>
+
+</body>
+</html>
