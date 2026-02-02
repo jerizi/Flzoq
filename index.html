@@ -1764,47 +1764,21 @@ renderTotalTable(); renderDaily(); renderMonth();
 </script></body>
 </html>
 
-// <!-- 월별 Top3 테이블 -->
-<table id="top3Table" border="1" style="border-collapse: collapse; text-align: center;">
-  <thead>
-    <tr>
-      <th>월</th>
-      <th>1위</th>
-      <th>2위</th>
-      <th>3위</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
-
-<!-- Top3 라인 차트 -->
-<canvas id="top3Chart" width="900" height="400"></canvas>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- 월별 Top3 테이블 렌더 -->
 <script>
-// ===== 유틸: sumBy =====
-function sumBy(data, keyFn, valueFn = v => v.time) {
-    return data.reduce((acc, cur) => {
-        const key = keyFn(cur);
-        const value = valueFn(cur);
-        acc[key] = (acc[key] || 0) + value;
-        return acc;
-    }, {});
-}
-
 // ===== 월별 Top3 계산 =====
 function getTop3PerMonth(raw) {
     const monthUsers = {};
     raw.forEach(v => {
         const month = v.date.slice(0,7);
         if (!monthUsers[month]) monthUsers[month] = {};
-        monthUsers[month][v.name] = (monthUsers[month][v.name] || 0) + v.time;
+        monthUsers[month][v.name] = (monthUsers[month][v.name] || 0) + v.min; // v.time → v.min
     });
 
     const top3ByMonth = {};
     Object.entries(monthUsers).forEach(([month, users]) => {
         const top3 = Object.entries(users)
-            .map(([name, time]) => ({name, time}))
+            .map(([name, min]) => ({name, time: min}))
             .sort((a,b) => b.time - a.time)
             .slice(0,3);
         top3ByMonth[month] = top3;
@@ -1818,7 +1792,7 @@ function renderTop3Table(raw) {
     const tbody = document.querySelector('#top3Table tbody');
     let html = '';
     const colors = ['#FFD700','#C0C0C0','#CD7F32']; // 금/은/동
-    Object.entries(top3ByMonth).sort()[Symbol.iterator]().forEach(([month, arr]) => {
+    Object.entries(top3ByMonth).sort().forEach(([month, arr]) => {
         html += `<tr><td>${month}</td>`;
         for(let i=0;i<3;i++){
             if(arr[i]){
@@ -1871,4 +1845,4 @@ function renderTop3Chart(raw) {
 // ===== 실행 =====
 renderTop3Table(RAW);
 renderTop3Chart(RAW);
-      </script>
+</script>
