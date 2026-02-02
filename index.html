@@ -1,47 +1,83 @@
-<!DOCTYPE html><html lang="ko">
+<!<!DOCTYPE html>
+<html lang="ko">
 <head>
   <meta charset="UTF-8" />
   <title>숲 시청 리캡</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body { margin:0; background:#0b0f14; color:#e5e7eb; font-family: Pretendard, Arial, sans-serif; }
-    h1,h2 { color:#6ee7e7; }
-    .container { padding:20px; }
-    .card { background:#111827; border-radius:12px; padding:16px; margin-bottom:20px; box-shadow:0 0 0 1px #1f2937; }
-    select, input { background:#020617; color:#e5e7eb; border:1px solid #1f2937; padding:6px 8px; border-radius:6px; }
-    table { width:100%; border-collapse:collapse; }
-    th,td { padding:8px; border-bottom:1px solid #1f2937; text-align:left; }
+    h1,h2 { color:#6ee7e7; margin-bottom:10px; }
+    .container { padding:20px; max-width:1200px; margin:auto; }
+    .card { background: linear-gradient(145deg,#111827,#1f2937); border-radius:12px; padding:20px; margin-bottom:25px; box-shadow:0 4px 10px rgba(0,0,0,0.4); }
+    select, input { background:#020617; color:#e5e7eb; border:1px solid #1f2937; padding:6px 10px; border-radius:6px; font-size:14px; }
+    table { width:100%; border-collapse:collapse; margin-top:10px; }
+    th, td { padding:10px; border-bottom:1px solid #1f2937; text-align:left; font-size:14px; }
     th { color:#93c5fd; cursor:pointer; }
-    tr:hover { background:#020617; }
+    tr:hover { background: rgba(100,200,255,0.05); }
     .muted { color:#9ca3af; font-size:12px; }
+    td[style*="background"] { color:#0b0f14; text-align:center; border-radius:4px; }
+    canvas { margin-top:10px; border-radius:8px; background:#111827; }
+    @media (max-width:768px){ th,td{font-size:12px; padding:6px;} }
   </style>
 </head>
 <body>
 <div class="container">
-  <h1>📊 숲 시청 리캡 (2025)</h1>  <div class="card">
+  <h1>📊 숲 시청 리캡 (2025)</h1>
+
+  <!-- (a) 전체 스트리머 순위 -->
+  <div class="card">
     <h2>(a) 전체 스트리머 순위</h2>
     <input id="search" placeholder="스트리머 검색" />
     <table id="totalTable"></table>
-  </div>  <div class="card">
+  </div>
+
+  <!-- (b) 월별 순위 -->
+  <div class="card">
     <h2>(b) 월별 순위</h2>
     <select id="monthSelect"></select>
     <canvas id="monthChart"></canvas>
-  </div>  <div class="card">
+  </div>
+
+  <!-- (c) 일별 순위 -->
+  <div class="card">
     <h2>(c) 일별 순위</h2>
     <table id="dailyTable"></table>
-  </div>  <div class="card">
+  </div>
+
+  <!-- (d) 월별 총 시청량 비교 -->
+  <div class="card">
     <h2>(d) 월별 총 시청량 비교</h2>
     <canvas id="allMonthChart"></canvas>
   </div>
-</div><script>
-// ===== 그룹 정의 =====
-const GROUPS = {
-  "이세계아이돌": ["아이네","징버거","릴파","주르르","고세구","비챤"],
-  "고멤 클래식": ["곽춘식","권민","김치만두번영택사스가","단답벌레","도파민박사","뢴트게늄","비밀소녀","비즈니스킴","왁파고","풍신","해루석","히키킹","독고혜지","부정형인간","소피아","이덕수할아바이","티파니0421","아르바","융터르","노스페라투호","캘리칼리 데이비슨"],
-  "고멤 아카데미": ["닌닌","불독","시리안","아마데우스최","진희","젠투","수셈이","길버트","미미짱짱세용","빅토리","쵸로키","아이쓰께끼","버터우스","샬롯","메카맹기산"]
-};
 
-// ===== 데이터 (분 단위) =====
+  <!-- (e) 월별 Top3 스트리머 -->
+  <div class="card">
+    <h2>(e) 월별 Top3 스트리머</h2>
+    <table id="top3Table">
+      <thead>
+        <tr><th>월</th><th>1위</th><th>2위</th><th>3위</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- (f) Top3 라인 차트 -->
+  <div class="card">
+    <h2>(f) Top3 라인 차트</h2>
+    <canvas id="top3Chart"></canvas>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // ===== 그룹 정의 =====
+  const GROUPS = {
+    "이세계아이돌": ["아이네","징버거","릴파","주르르","고세구","비챤"],
+    "고멤 클래식": ["곽춘식","권민","김치만두번영택사스가","단답벌레","도파민박사","뢴트게늄","비밀소녀","비즈니스킴","왁파고","풍신","해루석","히키킹","독고혜지","부정형인간","소피아","이덕수할아바이","티파니0421","아르바","융터르","노스페라투호","캘리칼리 데이비슨"],
+    "고멤 아카데미": ["닌닌","불독","시리안","아마데우스최","진희","젠투","수셈이","길버트","미미짱짱세용","빅토리","쵸로키","아이쓰께끼","버터우스","샬롯","메카맹기산"]
+  };
+
+  // ===== RAW 데이터 (분 단위) =====
 const RAW = [
   {date:"2025-01-01", name:"징버거", min:166},
   {date:"2025-01-01", name:"닼발", min:14},
@@ -1687,79 +1723,117 @@ const RAW = [
 ];
   
 // ===== 유틸 =====
-const sumBy = (arr, keyFn) => {
-  const m = {};
-  arr.forEach(v => {
-    const k = keyFn(v);
-    m[k] = (m[k]||0) + v.min;
-  });
-  return m;
-};
+  const sumBy = (arr, keyFn) => {
+    const m={}; arr.forEach(v=>{const k=keyFn(v); m[k]=(m[k]||0)+v.min;}); return m;
+  };
+  const groupOf = name => { for(const g in GROUPS) if(GROUPS[g].includes(name)) return g; return "기타"; };
 
-const groupOf = name => {
-  for (const g in GROUPS) if (GROUPS[g].includes(name)) return g;
-  return "기타";
-};
+  // ===== 전체 스트리머 =====
+  const totalByStreamer=sumBy(RAW,v=>v.name);
+  function renderTotalTable(){
+    const q=document.getElementById('search').value;
+    const rows=Object.entries(totalByStreamer).filter(([n])=>n.includes(q)).sort((a,b)=>b[1]-a[1]);
+    let html='<tr><th>순위</th><th>이름</th><th>그룹</th><th>누적 시청(분)</th></tr>';
+    rows.forEach(([n,m],i)=>{ html+=`<tr><td>${i+1}</td><td>${n}</td><td class="muted">${groupOf(n)}</td><td>${m}</td></tr>`; });
+    document.getElementById('totalTable').innerHTML=html;
+  }
 
-// ===== 전체 스트리머 집계 =====
-const totalByStreamer = sumBy(RAW, v=>v.name);
+  // ===== 월별 =====
+  const months=[...new Set(RAW.map(v=>v.date.slice(0,7)))];
+  const monthSel=document.getElementById('monthSelect');
+  months.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.text=m; monthSel.appendChild(o); });
 
-function renderTotalTable() {
-  const q = document.getElementById('search').value;
-  const rows = Object.entries(totalByStreamer)
-    .filter(([n])=>n.includes(q))
-    .sort((a,b)=>b[1]-a[1]);
+  let monthChart;
+  function renderMonth(){
+    const m=monthSel.value;
+    const data=RAW.filter(v=>v.date.startsWith(m));
+    const summed=sumBy(data,v=>v.name);
+    const labels=Object.keys(summed); const vals=Object.values(summed);
+    if(monthChart) monthChart.destroy();
+    monthChart=new Chart(document.getElementById('monthChart'),{type:'bar',data:{labels,datasets:[{data:vals,backgroundColor:'#36A2EB'}]},options:{plugins:{legend:{display:false}}}});
+  }
 
-  let html = '<tr><th>순위</th><th>이름</th><th>그룹</th><th>누적 시청(분)</th></tr>';
-  rows.forEach(([n,m],i)=>{
-    html += `<tr><td>${i+1}</td><td>${n}</td><td class="muted">${groupOf(n)}</td><td>${m}</td></tr>`;
-  });
-  document.getElementById('totalTable').innerHTML = html;
-}
+  // ===== 일별 =====
+  const dailySum=sumBy(RAW,v=>v.date);
+  function renderDaily(){ const rows=Object.entries(dailySum).sort((a,b)=>b[1]-a[1]);
+    let html='<tr><th>날짜</th><th>총 시청(분)</th></tr>';
+    rows.forEach(r=>html+=`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`);
+    document.getElementById('dailyTable').innerHTML=html;
+  }
 
-// ===== 월별 =====
-const months = [...new Set(RAW.map(v=>v.date.slice(0,7)))];
-const monthSel = document.getElementById('monthSelect');
-months.forEach(m=>{
-  const o=document.createElement('option'); o.value=m; o.text=m; monthSel.appendChild(o);
+  // ===== 월별 총 시청 =====
+  const monthSum=sumBy(RAW,v=>v.date.slice(0,7));
+  new Chart(document.getElementById('allMonthChart'),{type:'line',data:{labels:Object.keys(monthSum),datasets:[{data:Object.values(monthSum),borderColor:'#FF6384',fill:false,borderWidth:2}]},options:{plugins:{legend:{display:false}}}});
+
+  // ===== Top3 =====
+  function getTop3PerMonth(raw){
+    const monthUsers={};
+    raw.forEach(v=>{ const month=v.date.slice(0,7); if(!monthUsers[month]) monthUsers[month]={}; monthUsers[month][v.name]=(monthUsers[month][v.name]||0)+v.min; });
+    const top3ByMonth={};
+    Object.entries(monthUsers).forEach(([month,users])=>{ top3ByMonth[month]=Object.entries(users).map(([name,min])=>({name,time:min})).sort((a,b)=>b.time-a.time).slice(0,3); });
+    return top3ByMonth;
+  }
+
+  const top3MonthSel=document.getElementById('top3MonthSelect');
+  top3MonthSel.innerHTML='<option value="전체">전체</option>';
+  months.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.text=m; top3MonthSel.appendChild(o); });
+
+  function renderTop3Table(selectedMonth){
+    const top3ByMonth=getTop3PerMonth(RAW);
+    const tbody=document.querySelector('#top3Table tbody');
+    let html='';
+    const colors=['#FFD700','#C0C0C0','#CD7F32'];
+    if(selectedMonth==='전체'){
+      // 월 전체 기준
+      const aggregate={};
+      RAW.forEach(v=>{ aggregate[v.name]=(aggregate[v.name]||0)+v.min; });
+      const sorted=Object.entries(aggregate).map(([name,min])=>({name,time:min})).sort((a,b)=>b.time-a.time).slice(0,3);
+      html+='<tr><td>전체</td>';
+      sorted.forEach((u,i)=>{ html+=`<td style="background:${colors[i]}; font-weight:bold;">${u.name} (${u.time}분)</td>`; });
+      while(sorted.length<3){ html+='<td></td>'; sorted.push({}); }
+      html+='</tr>';
+    } else {
+      const arr=top3ByMonth[selectedMonth]||[];
+      html+='<tr><td>'+selectedMonth+'</td>';
+      for(let i=0;i<3;i++){ if(arr[i]) html+=`<td style="background:${colors[i]}; font-weight:bold;">${arr[i].name} (${arr[i].time}분)</td>`; else html+='<td></td>'; }
+      html+='</tr>';
+    }
+    tbody.innerHTML=html;
+  }
+
+  let top3Chart;
+  function renderTop3Chart(selectedMonth){
+    const top3ByMonth=getTop3PerMonth(RAW);
+    let users=[], monthsArr=[];
+    if(selectedMonth==='전체'){
+      users=Object.keys(sumBy(RAW,v=>v.name));
+      monthsArr=Object.keys(top3ByMonth).sort();
+    } else {
+      users=new Set();
+      Object.values(top3ByMonth[selectedMonth]||[]).forEach(u=>users.add(u.name));
+      users=Array.from(users);
+      monthsArr=[selectedMonth];
+    }
+
+    const colorPalette=['#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF','#FF9F40','#8B0000','#008000','#00008B','#800080'];
+    const datasets=users.map((name,idx)=>({label:name,data:monthsArr.map(m=>{ const f=(top3ByMonth[m]||[]).find(u=>u.name===name); return f?f.time:0; }), fill:false, borderColor:colorPalette[idx%colorPalette.length], tension:0.3, borderWidth:2, pointRadius:4, pointHoverRadius:6}));
+
+    if(top3Chart) top3Chart.destroy();
+    top3Chart=new Chart(document.getElementById('top3Chart'),{type:'line',data:{labels:monthsArr,datasets},options:{plugins:{legend:{display:true,position:'bottom'}},responsive:true,interaction:{mode:'nearest',intersect:false},scales:{y:{beginAtZero:true,title:{display:true,text:'시청 시간(분)'}}}}});
+  }
+
+  // ===== 이벤트 =====
+  document.getElementById('search').oninput=renderTotalTable;
+  monthSel.onchange=renderMonth;
+  top3MonthSel.onchange=()=>{ renderTop3Table(top3MonthSel.value); renderTop3Chart(top3MonthSel.value); };
+
+  // ===== 초기 렌더 =====
+  renderTotalTable();
+  renderDaily();
+  renderMonth();
+  renderTop3Table('전체');
+  renderTop3Chart('전체');
 });
-
-let monthChart;
-function renderMonth() {
-  const m = monthSel.value;
-  const data = RAW.filter(v=>v.date.startsWith(m));
-  const summed = sumBy(data,v=>v.name);
-  const labels = Object.keys(summed);
-  const vals = Object.values(summed);
-  if (monthChart) monthChart.destroy();
-  monthChart = new Chart(document.getElementById('monthChart'),{
-    type:'bar',
-    data:{labels, datasets:[{data:vals}]},
-    options:{plugins:{legend:{display:false}}}
-  });
-}
-
-// ===== 일별 =====
-const dailySum = sumBy(RAW, v=>v.date);
-function renderDaily() {
-  const rows = Object.entries(dailySum).sort((a,b)=>b[1]-a[1]);
-  let html='<tr><th>날짜</th><th>총 시청(분)</th></tr>';
-  rows.forEach(r=> html+=`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`);
-  document.getElementById('dailyTable').innerHTML=html;
-}
-
-// ===== 월 전체 비교 =====
-const monthSum = sumBy(RAW, v=>v.date.slice(0,7));
-new Chart(document.getElementById('allMonthChart'),{
-  type:'line',
-  data:{labels:Object.keys(monthSum), datasets:[{data:Object.values(monthSum)}]},
-  options:{plugins:{legend:{display:false}}}
-});
-
-// ===== 이벤트 =====
-document.getElementById('search').oninput=renderTotalTable;
-monthSel.onchange=renderMonth;
-
-renderTotalTable(); renderDaily(); renderMonth();
-</script></body>
+</script>
+</body>
 </html>
