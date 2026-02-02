@@ -1762,7 +1762,7 @@ monthSel.onchange=renderMonth;
 
 renderTotalTable(); renderDaily(); renderMonth();
 
-<!-- 월별 Top3 테이블 -->
+<!-- ===== 월별 Top3 카드 ===== -->
 <div class="card">
   <h2>(e) 월별 Top3 스트리머</h2>
   <table id="top3Table">
@@ -1778,7 +1778,6 @@ renderTotalTable(); renderDaily(); renderMonth();
   </table>
 </div>
 
-<!-- Top3 라인 차트 -->
 <div class="card">
   <h2>(f) Top3 라인 차트</h2>
   <canvas id="top3Chart"></canvas>
@@ -1828,7 +1827,6 @@ function renderTop3Chart(raw) {
   const top3ByMonth = getTop3PerMonth(raw);
   const months = Object.keys(top3ByMonth).sort();
 
-  // 모든 Top3 등장 유저 수집
   const userSet = new Set();
   Object.values(top3ByMonth).forEach(arr => arr.forEach(u => userSet.add(u.name)));
   const users = Array.from(userSet);
@@ -1864,6 +1862,8 @@ function renderTop3Chart(raw) {
 // ===== 월별 Top3 실행 =====
 renderTop3Table(RAW);
 renderTop3Chart(RAW);
+</script>
+  
 </script>
 </script></body>
 </html>
